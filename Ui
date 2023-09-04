@@ -1,0 +1,317 @@
+local b = {
+    Unknown = 0,
+    Root = 1,
+    Category = 2,
+    Section = 3,
+    Header = 4,
+    Entry = 5,
+    UiElement = 6,
+}
+
+local c = {}
+
+c.__index = c
+
+function c:New(I, J, K)
+    local L = setmetatable({}, c)
+    L.Type = I or b.Unknown
+    L.Parent = J or L.Parent
+    L.Children = {}
+    L.GuiObject = K or nil
+    if J then
+        J:AddChild(L)
+    end
+    return L
+end
+
+function c:AddChild(I)
+    I.Parent = self
+    table.insert(self.Children, I)
+    if I.GuiObject and self.GuiObject then
+        I.GuiObject.Parent = self.GuiObject
+    end
+end
+
+function c:RecursiveUpdateGui()
+    self:UpdateGui()
+    for I, J in ipairs(self.Children) do
+        J:RecursiveUpdateGui()
+    end
+end
+
+function c:UpdateGui()
+end
+
+local d = {}
+
+d.__index = d
+setmetatable(d, c)
+
+function d:New(I, J, K)
+    local L = setmetatable(c:New(b.UiElement), d)
+    L.Value = nil
+    L.Title = K
+    L.Size = I
+    L.Position = J
+    return L
+end
+
+function d:SetValue()
+end
+
+function d:GetValue()
+    return self.Value
+end
+
+local e = {
+    PrimaryColor = Color3.fromRGB(27, 38, 59),
+    SecondaryColor = Color3.fromRGB(13, 27, 42),
+    AccentColor = Color3.fromRGB(41, 115, 115),
+    TextColor = Color3.new(1, 1, 1),
+    Font = Enum.Font.Gotham,
+    TextSize = 13,
+    HeaderWidth = 300,
+    HeaderHeight = 32,
+    EntryMargin = 1,
+    AnimationDuration = 0.4,
+    AnimationEasingStyle = Enum.EasingStyle.Quint,
+    DefaultEntryHeight = 35,
+}
+
+local f = {}
+
+f.__index = f
+setmetatable(f, d)
+
+function f:New()
+    local I = setmetatable(d:New(UDim2.new(0, 20, 0, 20), UDim2.new(1, -20 - 5, 0.5, -20 / 2), ""), f)
+    I.GuiObject = Instance.new("TextButton")
+    I.GuiObject.MouseButton1Click:Connect(function()
+        I.Parent.Parent.Collapsed = not I.Parent.Parent.Collapsed
+        if I.Parent.Parent.Collapsed then
+            I.Parent.Parent:Collapse()
+        else
+            I.Parent.Parent:Expand()
+        end
+    end)
+    return I
+end
+
+function f:Collapse()
+    self.GuiObject.Text = "+"
+end
+
+function f:Expand()
+    self.GuiObject.Text = "-"
+end
+
+function f:UpdateGui()
+    self.GuiObject.TextScaled = true
+    self.GuiObject.TextColor3 = e.TextColor
+    self.GuiObject.BackgroundTransparency = 1
+    self.GuiObject.Size = self.Size
+    self.GuiObject.Position = self.Position
+    if self.Parent.Parent.Collapsed then
+        self.GuiObject.Text = "+"
+    else
+        self.GuiObject.Text = "-"
+    end
+end
+
+local g = {}
+
+g.__index = g
+setmetatable(g, c)
+
+function g:New(I)
+    local J = setmetatable(c:New(b.Header), g)
+    J.GuiObject = Instance.new("TextLabel")
+    J.CollapseButton = f:New()
+    J:AddChild(J.CollapseButton)
+    return J
+end
+
+function g:UpdateGui()
+    self.GuiObject.Size = UDim2.new(1, 0, 0, e.HeaderHeight)
+    self.GuiObject.Text = self.Parent.Title
+    self.GuiObject.TextSize = e.TextSize * 1.25
+    self.GuiObject.TextColor3 = e.TextColor
+    self.GuiObject.Font = e.Font
+    self.GuiObject.BorderSizePixel = 0
+    self.GuiObject.BackgroundColor3 = e.SecondaryColor
+    if self.Parent.Type == b.Category then
+        self.TextSize = e.TextSize * 1.5
+    end
+end
+
+local h = {}
+
+h.__index = h
+setmetatable(h, c)
+
+function h:New(I)
+    local J = setmetatable(c:New(b.Entry), h)
+    J.Value = nil
+    J.Height = I or e.DefaultEntryHeight
+    J.GuiObject = Instance.new("Frame")
+    return J
+end
+
+function h:SetValue()
+end
+
+function h:GetValue()
+end
+
+function h:UpdateGui()
+    self.GuiObject.BackgroundColor3 = e.PrimaryColor
+    self.GuiObject.BorderSizePixel = 0
+    self.GuiObject.Size = UDim2.new(1, 0, 0, self.Height)
+end
+
+local i = {}
+
+i.__index = i
+setmetatable(i, c)
+
+function i:New(I, J)
+    local K = setmetatable(c:New(J), i)
+    K.Collapsed = false
+    K.Height = 0
+    K.GuiObject = Instance.new("Frame")
+    K.Header = g:New()
+    K.Title = I or ""
+    K:AddChild(K.Header)
+    return K
+end
+
+function i:UpdateGui()
+    self.GuiObject.Size = UDim2.new(0, e.HeaderWidth, 0, 0)
+    self.GuiObject.BackgroundColor3 = e.SecondaryColor
+    self.GuiObject.BorderSizePixel = 0
+end
+
+local j = {}
+
+j.__index = j
+setmetatable(j, c)
+
+function j:New(I)
+    local J = setmetatable(c:New(b.Category, I), j)
+    J.GuiObject = Instance.new("Frame")
+    J.GuiObject.Size = UDim2.new(1, 0, 0, e.HeaderHeight)
+    return J
+end
+
+function j:UpdateGui()
+    self.GuiObject.Size = UDim2.new(1, 0, 0, e.HeaderHeight)
+    self.GuiObject.BackgroundColor3 = e.SecondaryColor
+    self.GuiObject.BorderSizePixel = 0
+end
+
+local k = {
+    Dragged = false,
+    GuiObject = nil,
+}
+
+local n = game:GetService("UserInputService")
+local q = Instance.new("ScreenGui")
+q.Name = "Cool Gui"
+q.DisplayOrder = 10
+q.Parent = game.Players.LocalPlayer.PlayerGui
+
+local t = i:New("Title")
+local u = j:New(t)
+local v = j:New(t)
+local w = h:New(35)
+local x = h:New(35)
+local y = h:New(35)
+local z = h:New(35)
+local A = h:New(35)
+local B = h:New(35)
+local C = h:New(35)
+local D = h:New(35)
+local E = h:New(35)
+local F = h:New(35)
+local G = h:New(35)
+local H = h:New(35)
+local I = h:New(35)
+local J = h:New(35)
+local K = h:New(35)
+local L = h:New(35)
+local M = h:New(35)
+local N = h:New(35)
+local O = h:New(35)
+local P = h:New(35)
+
+t:AddChild(u)
+t:AddChild(v)
+u:AddChild(w)
+u:AddChild(x)
+u:AddChild(y)
+v:AddChild(z)
+v:AddChild(A)
+v:AddChild(B)
+v:AddChild(C)
+v:AddChild(D)
+v:AddChild(E)
+v:AddChild(F)
+v:AddChild(G)
+v:AddChild(H)
+v:AddChild(I)
+v:AddChild(J)
+v:AddChild(K)
+v:AddChild(L)
+v:AddChild(M)
+v:AddChild(N)
+v:AddChild(O)
+v:AddChild(P)
+
+t.GuiObject.Parent = q
+t:UpdateGui()
+t.Collapsed = false
+t:Expand()
+t:RecursiveUpdateGui()
+
+function k:OnMouseDrag(I)
+    local J = I.Position - self.DragStart
+    self.GuiObject.Position = UDim2.new(
+        self.OriginalPosition.X.Scale,
+        self.OriginalPosition.X.Offset + J.X,
+        self.OriginalPosition.Y.Scale,
+        self.OriginalPosition.Y.Offset + J.Y
+    )
+end
+
+function k:OnMouseButton1Down(I)
+    self.Dragged = true
+    self.DragStart = I.Position - self.GuiObject.Position
+    self.OriginalPosition = self.GuiObject.Position
+end
+
+function k:OnMouseButton1Up()
+    self.Dragged = false
+end
+
+function k:ConnectEvents()
+    self.GuiObject.InputBegan:Connect(function(I)
+        if I.UserInputType == Enum.UserInputType.MouseButton1 then
+            self:OnMouseButton1Down(I)
+        end
+    end)
+
+    self.GuiObject.InputChanged:Connect(function(I)
+        if self.Dragged and I.UserInputType == Enum.UserInputType.MouseMovement then
+            self:OnMouseDrag(I)
+        end
+    end)
+
+    self.GuiObject.InputEnded:Connect(function(I)
+        if I.UserInputType == Enum.UserInputType.MouseButton1 then
+            self:OnMouseButton1Up()
+        end
+    end)
+end
+
+k.GuiObject = t.GuiObject
+k:ConnectEvents()
