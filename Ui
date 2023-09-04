@@ -209,6 +209,34 @@ function j:UpdateGui()
     self.GuiObject.BorderSizePixel = 0
 end
 
+
+function t:Expand()
+    for _, child in ipairs(self.Children) do
+        child.GuiObject.Visible = true
+    end
+    self.GuiObject.Size = UDim2.new(self.GuiObject.Size.X.Scale, self.GuiObject.Size.X.Offset, self:GetTotalHeight(), self.GuiObject.Size.Y.Offset)
+end
+
+function t:Collapse()
+    for _, child in ipairs(self.Children) do
+        child.GuiObject.Visible = false
+    end
+    self.GuiObject.Size = UDim2.new(self.GuiObject.Size.X.Scale, self.GuiObject.Size.X.Offset, 0, self.GuiObject.Size.Y.Offset)
+end
+
+function t:GetTotalHeight()
+    local totalHeight = 0
+    for _, child in ipairs(self.Children) do
+        if child.Type == b.Entry then
+            totalHeight = totalHeight + child.Height
+        elseif child.Type == b.Section or child.Type == b.Category then
+            totalHeight = totalHeight + child.GuiObject.Size.Y.Offset
+        end
+    end
+    return totalHeight
+end
+
+
 local k = {
     Dragged = false,
     GuiObject = nil,
